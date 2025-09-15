@@ -33,3 +33,30 @@ h1 {
     width: 90px;
     height: 90px;
 }
+
+#record {
+  width: 200px;             /* make it big */
+  height: 200px;            /* same as width → circle */
+  border-radius: 50%;       /* perfect round */
+  background: green;          /* base color */
+  color: white;             /* text color */
+  font-size: 20px;          /* larger text */
+  font-weight: bold;
+  border: none;             /* no default border */
+  cursor: pointer;          /* hand on hover */
+  box-shadow: 0 10px 20px rgba(0,0,0,0.5), 
+              inset 0 -5px 10px rgba(0,0,0,0.4); /* outer + inner shadow */
+  transition: transform 0.1s ease;
+}
+
+#record:active {
+  transform: scale(0.95);   /* press down effect */
+}
+
+.record-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 40px;
+    gap: 16px;
+}

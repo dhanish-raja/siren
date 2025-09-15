@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mic → Text → Print</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:#111; }
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; background:#f6f8fa; }
+    .card { width:480px; background:white; border-radius:12px; box-shadow:0 6px 30px rgba(20,30,40,0.08); padding:20px; }
+    h1 { margin:0 0 12px; font-size:18px; }
+    #transcript, #sentText { min-height:120px; border:1px dashed #e3e7ea; border-radius:8px; padding:12px; white-space:pre-wrap; background:#fbfdff; margin-top:10px; }
+    .controls { display:flex; gap:8px; margin-top:12px; }
+    button { padding:10px 14px; border-radius:8px; border:0; cursor:pointer; font-weight:600; }
+    #start { background:#0b79ff; color:white; }
+    #stop  { background:#e6e6e6; }
+    #clear { background:#ff6b6b; color:#fff; }
+    .small { margin-top:10px; font-size:13px; color:#666; }
+    .listening { color: #0b79ff; font-weight:700; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Mic → Text → Print</h1>
+
+    <div id="transcript">Press <strong>Start</strong> and speak. Transcript will appear here.</div>
+    <div id="sentText">Text sent to API will appear here.</div>
+
+    <div class="controls">
+      <button id="start">Start</button>
+      <button id="stop">Stop</button>
+      <button id="clear">Clear</button>
+    </div>
+
+    <div class="small">
+      Status: <span id="status">idle</span>
+      <div style="margin-top:6px">Use Chrome/Edge on desktop. Works on HTTPS or localhost.</div>
+    </div>
+  </div>
+
+  <script>
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const startBtn = document.getElementById('start');
+    const stopBtn  = document.getElementById('stop');
+    const clearBtn = document.getElementById('clear');
+    const transcriptEl = document.getElementById('transcript');
+    const sentTextEl = document.getElementById('sentText');
+    const statusEl = document.getElementById('status');
+
+    if (!SpeechRecognition) {
+      transcriptEl.textContent = "Sorry — your browser doesn't support the Web Speech API.";
+      startBtn.disabled = true;
+      stopBtn.disabled = true;
+    } else {
+      const recog = new SpeechRecognition();
+      recog.lang = 'en-US';
+      recog.interimResults = true;
+      recog.maxAlternatives = 1;
+      recog.continuous = true;
+
+      let finalText = '';
+      let isListening = false;
+
+      recog.onstart = () => { statusEl.innerHTML = '<span class="listening">listening…</span>'; };
+      recog.onend = () => { 
+        statusEl.textContent = 'idle';
+        if(isListening) recog.start(); // auto-restart for continuous listening
+      };
+      recog.onerror = (e) => { 
+        console.error(e); 
+        statusEl.textContent = 'error: ' + (e.error || 'unknown'); 
+      };
+      recog.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const r = event.results[i];
+          if (r.isFinal) finalText += r[0].transcript + ' ';
+          else interim += r[0].transcript;
+        }
+        transcriptEl.textContent = (finalText + (interim ? ('\n' + interim) : '')).trim();
+      };
+
+      startBtn.addEventListener('click', () => {
+        finalText = '';
+        transcriptEl.textContent = 'Listening... (speak now)';
+        sentTextEl.textContent = '';
+        isListening = true;
+        try { recog.start(); } catch(err) { console.warn(err); }
+      });
+
+      stopBtn.addEventListener('click', () => {
+        isListening = false;
+        try { recog.stop(); } catch(e) { /* ignored */ }
+        if(finalText.trim()) sendText(finalText.trim());
+      });
+
+      clearBtn.addEventListener('click', () => {
+        finalText = '';
+        transcriptEl.textContent = '';
+        sentTextEl.textContent = '';
+      });
+    }
+
+    async function sendText(text) {
+      statusEl.textContent = 'sending to API...';
+      try {
+        // Only call your single API
+        await fetch('/api/chiron/audio-output', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        // Just print the text you sent
+        sentTextEl.textContent = 'Sent: ' + text;
+        statusEl.textContent = 'idle';
+      } catch(err) {
+        console.error(err);
+        sentTextEl.textContent = 'Error sending text';
+        statusEl.textContent = 'error';
+      }
+    }
+  </script>
+</body>
+</html>
