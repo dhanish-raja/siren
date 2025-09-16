@@ -1,15 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title> SIREN </title>
   <link rel="stylesheet" href="styles/voice.css">
   <script src="scripts/voice.js" defer></script>
-
 </head>
-
 <body>
   <div class="main-info">
     <h1 id="siren-text">SIREN</h1>
@@ -20,28 +17,7 @@
 
   <form class="record-form">
     <button id="record">Start Recording</button>
-    <a id="download" href="#">Download</a>
+    <a id="download" href="#" style="display: none;">Download</a>
   </form>
-
-  <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyBw39EAxKbvuIZwCo8rSKXuVsEZPxu7DeE",
-    authDomain: "siren-00.firebaseapp.com",
-    projectId: "siren-00",
-    storageBucket: "siren-00.firebasestorage.app",
-    messagingSenderId: "670989482584",
-    appId: "1:670989482584:web:ee62d39706cdb033ff282d"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-</script>
 </body>
-
 </html>

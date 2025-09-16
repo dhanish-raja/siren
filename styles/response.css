@@ -1,5 +1,5 @@
 /* ============================================= */
-/* ==      SIREN - Index Page Styles          == */
+/* ==    SIREN - Report Response Page Styles  == */
 /* ============================================= */
 
 /* --- 1. Base Styles (for consistency) --- */
@@ -9,7 +9,7 @@
     --color-background: #f0f2f5; /* Light, clean gray */
     --color-surface: #ffffff; /* White for cards and inputs */
     --color-text-primary: #333333;
-    --color-text-on-dark: #ffffff;
+    --color-text-secondary: #666666;
     --font-family: 'Helvetica Neue', Arial, sans-serif;
     --border-radius: 8px;
     --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -45,64 +45,42 @@ body {
 }
 
 /* --- 2. Page-Specific Styles --- */
-#inputSection {
+.report-card {
     background-color: var(--color-surface);
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
     width: 100%;
-    max-width: 500px;
+    max-width: 600px;
     padding: 30px;
     box-sizing: border-box;
-    display: flex;
-    gap: 10px;
-    align-items: center;
+    border-left: 5px solid var(--color-accent);
 }
 
-#phone-input {
-    flex-grow: 1;
-    height: 50px;
-    padding: 0 20px;
+.report-card h2 {
+    text-align: center;
+    color: var(--color-accent);
+    margin-top: 0;
+    margin-bottom: 24px;
+}
+
+.detail-item {
+    margin-bottom: 18px;
+}
+
+.detail-item strong {
+    display: block;
+    color: var(--color-text-secondary);
+    margin-bottom: 4px;
+}
+
+.detail-item p {
+    margin: 0;
+    padding: 10px;
+    background-color: #f7f7f7;
+    border-radius: 4px;
     font-size: 1.1em;
-    border-radius: 25px;
-    border: 2px solid #ddd;
-    outline: none;
-    transition: border-color 0.2s;
 }
 
-#phone-input:focus {
-    border-color: var(--color-primary);
-}
-
-#call-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 120px;
-    height: 50px;
-    padding: 0 20px;
-    font-size: 1.1em;
-    font-weight: bold;
-    color: var(--color-text-on-dark);
-    background-color: var(--color-primary);
-    border: none;
-    border-radius: 25px;
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
-}
-
-#call-button:hover {
-    background-color: #1EAD54;
-}
-
-#call-button .call-image {
-    width: 24px;
-    height: 24px;
-}
-
-/* Hides the arrows on number inputs */
-input[type=number]::-webkit-outer-spin-button,
-input[type=number]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+.detail-item.summary p {
+    line-height: 1.6;
 }
