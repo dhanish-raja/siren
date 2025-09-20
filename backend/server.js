@@ -3,7 +3,7 @@ require('dotenv').config(); // Loads environment variables from a .env file
 const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
-const https = require('https');
+const nodemailer = require('nodemailer'); // For sending emails
 
 // --- Configuration ---
 const app = express();
@@ -15,17 +15,10 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // --- Middleware ---
-// Enable Cross-Origin Resource Sharing (CORS) for all routes
-app.use(cors());
+app.use(cors()); // Enable Cross-Origin Resource Sharing (CORS) for all routes
 
 // --- Gemini API Interaction ---
-/**
- * Processes the audio data by sending it to the Google Gemini API.
- * @param {Buffer} audioBuffer - The audio file data as a buffer.
- * @returns {Promise<string>} A promise that resolves to the JSON text response from Gemini.
- */
 async function processAudioWithGemini(audioBuffer) {
-  // 1. Prepare the request data for the Gemini API
   const encodedAudio = audioBuffer.toString('base64');
   const prompt = `You are a headless AI data processing unit. Your sole function is to receive unstructured audio from an emergency reporting system, transcribe it, and convert the transcribed text into a structured, valid JSON object based on the schema and rules provided below. You must act as a silent parser; do not output any text, explanations, apologies, or markdown formatting—only the final JSON object.
 
@@ -123,7 +116,7 @@ Now, process the audio report provided and return only the JSON object.`;
         { text: prompt },
         {
           inline_data: {
-            mime_type: 'audio/webm', // The frontend sends audio/webm
+            mime_type: 'audio/webm',
             data: encodedAudio
           }
         }
@@ -131,28 +124,35 @@ Now, process the audio report provided and return only the JSON object.`;
     }]
   };
 
-  // 2. Make the POST request to the Gemini API
-  const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody)
-  });
+  const apiResponse = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    }
+  );
 
   if (!apiResponse.ok) {
     const errorBody = await apiResponse.text();
     throw new Error(`Gemini API request failed with status ${apiResponse.status}: ${errorBody}`);
   }
 
-  // 3. Parse and extract the relevant JSON text from the response
   const responseData = await apiResponse.json();
   const geminiText = responseData.candidates[0].content.parts[0].text;
-  
-  // The response from Gemini is a string that is formatted as JSON, so we return it directly.
   return geminiText;
 }
 
+// --- Email Setup ---
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,      // add in .env
+    pass: process.env.EMAIL_PASSWORD   // Gmail App Password, not account password
+  }
+});
+
 // --- API Endpoint ---
-// Define a POST endpoint to handle audio uploads
 app.post('/api/audio/upload', upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).send('No file uploaded.');
@@ -163,19 +163,37 @@ app.post('/api/audio/upload', upload.single('file'), async (req, res) => {
   try {
     const geminiJsonResponse = await processAudioWithGemini(req.file.buffer);
     console.log("Successfully processed audio with Gemini.");
-    
-    // The result from Gemini should already be a JSON string, so we parse it 
-    // and send it back as a JSON object to the client.
-    // The model sometimes wraps the JSON in markdown. We need to extract only the JSON part.
-const match = geminiJsonResponse.match(/{[\s\S]*}/);
 
-if (match) {
-    const jsonString = match[0];
-    res.status(200).json(JSON.parse(jsonString));
-} else {
-    // If for some reason no JSON object is found in the response, throw an error.
-    throw new Error("No valid JSON found in Gemini response.");
-}
+    const match = geminiJsonResponse.match(/{[\s\S]*}/);
+
+    if (match) {
+      const jsonString = match[0];
+      const parsedData = JSON.parse(jsonString);
+
+      // --- Format parsed JSON into clean text ---
+      const formattedText = Object.entries(parsedData)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(';\n');
+
+      // --- Send email with formatted text ---
+      try {
+        await transporter.sendMail({
+          from: `"SIREN Alerts" <${process.env.EMAIL_USER}>`,
+          to: "azumthulla77@gmail.com", // recipient email
+          subject: "🚨 New Emergency Alert",
+          text: formattedText, // plain text
+          html: `<pre>${formattedText}</pre>` // formatted HTML
+        });
+        console.log("📧 Email sent successfully");
+      } catch (mailErr) {
+        console.error("❌ Email error:", mailErr);
+      }
+
+      // --- Always return JSON response ---
+      res.status(200).json(parsedData);
+    } else {
+      throw new Error("No valid JSON found in Gemini response.");
+    }
 
   } catch (error) {
     console.error('Error processing audio with Gemini:', error);
@@ -185,5 +203,5 @@ if (match) {
 
 // --- Start the Server ---
 app.listen(PORT, () => {
-  console.log(`🚨 SIREN JS Backend Started! Listening for audio uploads on http://localhost:${PORT}`);
+  console.log(`🚨 SIREN JS Backend Started! Listening on http://localhost:${PORT}`);
 });
